@@ -1,7 +1,14 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
-import { subDays, addDays, getDate, startOfWeek } from 'date-fns'
-import { VISIBLE_DAYS } from './utils/constants'
+import {
+  subDays,
+  addDays,
+  getDate,
+  isSameDay,
+  isSameMonth,
+  isWithinRange
+} from 'date-fns'
+import { VISIBLE_DAYS, NAVIGATE } from './utils/constants'
 import { visibleDaysInterval } from './utils/fns'
 import './styles/Toolbar.less'
 
@@ -9,7 +16,9 @@ const WEEK_DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export default class Toolbar extends Component {
   static propTypes = {
-    visibleDays: PropTypes.number
+    visibleDays: PropTypes.number,
+    date: PropTypes.instanceOf(Date).isRequired,
+    onNavigate: PropTypes.func.isRequired
   }
 
   static defaultProps = {
@@ -17,31 +26,39 @@ export default class Toolbar extends Component {
   }
 
   state = {
-    interval: visibleDaysInterval(
-      startOfWeek(this.props.date),
-      this.props.visibleDays
-    )
+    interval: visibleDaysInterval(this.props.date, this.props.visibleDays)
   }
 
-  handleNavigate = date => {
+  handleDateClick = date => {
     const { onNavigate, visibleDays } = this.props
-    const interval = visibleDaysInterval(date, visibleDays)
-    this.setState({ interval }, () => onNavigate(date))
+    const interval = this.state.interval
+    const isOutOfMonth = !isWithinRange(
+      date,
+      interval[0],
+      interval[interval.length - 1]
+    )
+
+    if (isOutOfMonth) {
+      this.setState({ interval: visibleDaysInterval(date, visibleDays) })
+    }
+
+    onNavigate(NAVIGATE.date, date)
   }
 
   render() {
     const { date } = this.props
     const { interval } = this.state
+    const now = new Date()
 
     return (
       <div className="rbc-calendar-toolbar">
         <h3>{date.toDateString()}</h3>
-        <button onClick={_ => this.handleNavigate(subDays(date, 7))}>
-          Last week
+        <button onClick={_ => this.handleDateClick(subDays(date, 1))}>
+          Previous
         </button>
-        <button onClick={_ => this.handleNavigate(new Date())}>Today</button>
-        <button onClick={_ => this.handleNavigate(addDays(date, 7))}>
-          Next week
+        <button onClick={_ => this.handleDateClick(now)}>Today</button>
+        <button onClick={_ => this.handleDateClick(addDays(date, 1))}>
+          Next
         </button>
         <div className="grid">
           {WEEK_DAYS.map((day, idx) => (
@@ -49,8 +66,15 @@ export default class Toolbar extends Component {
           ))}
           {interval.map(day => (
             <button
+              className={
+                isSameDay(day, date)
+                  ? 'active'
+                  : !isSameMonth(day, date)
+                  ? 'inactive'
+                  : null
+              }
               key={day.toString()}
-              onClick={_ => this.handleNavigate(day)}
+              onClick={_ => this.handleDateClick(day)}
             >
               {getDate(day)}
             </button>

@@ -1,4 +1,22 @@
 /**
- * Toolbar visible days
+ * Toolbar visible days.
+ * The meaning of life and everything.
  */
-export const VISIBLE_DAYS = 14
+export const VISIBLE_DAYS = 42
+
+/**
+ * react-big-calendar navigate actions
+ */
+export const NAVIGATE = {
+  DATE: 'DATE'
+}
+
+/**
+ * Toolbar calendar views.
+ *
+ */
+export const VIEWS = {
+  day: 'day',
+  month: 'month',
+  year: 'year'
+}

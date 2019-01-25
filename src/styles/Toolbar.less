@@ -4,5 +4,15 @@
     grid-template-columns: repeat(7, 1fr);
     grid-gap: 5px;
     text-align: center;
+
+    button {
+      &.active {
+        border-color: blue;
+      }
+
+      &.inactive {
+        color: grey;
+      }
+    }
   }
 }

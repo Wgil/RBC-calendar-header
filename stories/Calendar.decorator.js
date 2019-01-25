@@ -12,7 +12,7 @@ export default class App extends React.Component {
     date: new Date()
   }
 
-  handleNavigate = date => this.setState({ date })
+  handleDateChange = date => this.setState({ date })
 
   render() {
     const { date } = this.state
@@ -22,7 +22,7 @@ export default class App extends React.Component {
         <BigCalendar
           date={date}
           onNavigate={(date, view, action) => {
-            this.handleNavigate(action)
+            this.handleDateChange(date)
           }}
           localizer={localizer}
           events={[
