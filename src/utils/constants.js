@@ -8,7 +8,9 @@ export const VISIBLE_DAYS = 42
  * react-big-calendar navigate actions
  */
 export const NAVIGATE = {
-  DATE: 'DATE'
+  DATE: 'DATE',
+  PREVIOUS: 'PREV',
+  NEXT: 'NEXT'
 }
 
 /**

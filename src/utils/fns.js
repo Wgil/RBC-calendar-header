@@ -1,4 +1,10 @@
-import { addDays, eachDay, startOfWeek, startOfMonth } from 'date-fns'
+import {
+  addDays,
+  eachDay,
+  startOfWeek,
+  startOfMonth,
+  addMonths
+} from 'date-fns'
 import { VISIBLE_DAYS } from './constants'
 
 /**
@@ -15,3 +21,6 @@ export const visibleDaysInterval = (start, length = VISIBLE_DAYS) => {
   const lastDay = addDays(firstDay, length - 1)
   return eachDay(firstDay, lastDay)
 }
+
+export const eachMonth = (start, length) =>
+  Array.from({ length }, (_, months) => addMonths(start, months))

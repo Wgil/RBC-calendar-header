@@ -1,9 +1,16 @@
 .rbc-calendar-toolbar {
   .grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
     grid-gap: 5px;
     text-align: center;
+
+    &.day-grid {
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    &.month-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
 
     button {
       &.active {
