@@ -1,36 +1,58 @@
 import React, { Component } from 'react'
 import PropTypes from 'prop-types'
 import {
+  isSameDay,
   subDays,
   addDays,
   getDate,
-  isSameDay,
   isSameMonth,
   isWithinRange,
   format,
-  subYears
+  subYears,
+  addYears,
+  isSameYear,
+  startOfYear
 } from 'date-fns'
+import classNames from 'classnames'
 import { VISIBLE_DAYS, NAVIGATE, VIEWS } from './utils/constants'
-import { visibleDaysInterval, eachMonth } from './utils/fns'
+import { visibleDaysInterval, eachMonth, eachYear } from './utils/fns'
 import './styles/Toolbar.less'
 
+/**
+ * Week days initials.
+ */
 const WEEK_DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export default class Toolbar extends Component {
   static propTypes = {
+    /**
+     * The title of the toolbar.
+     */
+    title: PropTypes.string,
+    /**
+     * How many dates are going to be visible in the toolbar.
+     */
     visibleDays: PropTypes.number,
+    /**
+     * Current calendar date. Passed by the calendar component.
+     */
     date: PropTypes.instanceOf(Date).isRequired,
+    /**
+     * Callback to navigates between dates.
+     */
     onNavigate: PropTypes.func.isRequired
   }
 
   static defaultProps = {
+    title: '',
     visibleDays: VISIBLE_DAYS
   }
 
-  intervalFromView = (date, view) => {
+  getInterval = (date, view) => {
     const intervals = {
       [VIEWS.day]: visibleDaysInterval(date, this.props.visibleDays),
-      [VIEWS.month]: eachMonth(date, 12)
+      [VIEWS.month]: eachMonth(startOfYear(date), 12),
+      [VIEWS.year]: eachYear(startOfYear(date), 12)
     }
 
     return intervals[view]
@@ -38,25 +60,23 @@ export default class Toolbar extends Component {
 
   state = {
     view: VIEWS.day,
-    interval: this.intervalFromView(this.props.date, VIEWS.day)
+    interval: this.getInterval(this.props.date, VIEWS.day)
   }
 
   changeView = () => {
-    this.setState(currentState => {
-      const view = currentState.view
-      const views = [VIEWS.day, VIEWS.month /**, VIEWS.year */]
+    this.setState(({ view }) => {
+      const views = [VIEWS.day, VIEWS.month, VIEWS.year]
       const nextViewIdx = views.findIndex(v => v === view) + 1
       const nextView = views[nextViewIdx] || views[0]
 
       return {
         view: nextView,
-        interval: this.intervalFromView(this.props.date, nextView)
+        interval: this.getInterval(this.props.date, nextView)
       }
     })
   }
 
   handleDateClick = date => {
-    const { onNavigate } = this.props
     const interval = this.state.interval
     const isOutOfMonth = !isWithinRange(
       date,
@@ -65,23 +85,40 @@ export default class Toolbar extends Component {
     )
 
     if (isOutOfMonth) {
-      this.setState({ interval: this.intervalFromView(date, VIEWS.day) })
+      this.setState({ interval: this.getInterval(date, VIEWS.day) })
     }
 
-    onNavigate(NAVIGATE.date, date)
+    this.props.onNavigate(NAVIGATE.date, date)
   }
 
   handleMonthClick = date => {
     this.setState({
       view: VIEWS.day,
-      interval: this.intervalFromView(date, VIEWS.day)
+      interval: this.getInterval(date, VIEWS.day)
+    })
+
+    this.props.onNavigate(NAVIGATE.date, date)
+  }
+
+  handleYearClick = date => {
+    this.setState({
+      view: VIEWS.month,
+      interval: this.getInterval(date, VIEWS.month)
     })
   }
 
-  intervalTitle = view => {
+  getTitle = view => {
+    if (this.props.title) {
+      return this.props.title
+    }
+
     const titles = {
       [VIEWS.day]: format(this.props.date, 'MMMM YYYY'),
-      [VIEWS.month]: format(this.state.interval[0], 'YYYY')
+      [VIEWS.month]: format(this.state.interval[0], 'YYYY'),
+      [VIEWS.year]: `${format(this.state.interval[0], 'YYYY')} - ${format(
+        this.state.interval[this.state.interval.length - 1],
+        'YYYY'
+      )}`
     }
 
     return titles[view]
@@ -93,8 +130,42 @@ export default class Toolbar extends Component {
       this.handleDateClick(subDays(this.props.date, 1))
     } else if (view === VIEWS.month) {
       this.setState(currentState => {
-        const interval = this.intervalFromView(
+        const interval = this.getInterval(
           subYears(currentState.interval[0], 1),
+          view
+        )
+
+        return { interval }
+      })
+    } else if (view === VIEWS.year) {
+      this.setState(currentState => {
+        const interval = this.getInterval(
+          subYears(currentState.interval[0], 12),
+          view
+        )
+
+        return { interval }
+      })
+    }
+  }
+
+  handleNextClick = () => {
+    const { view } = this.state
+    if (view === VIEWS.day) {
+      this.handleDateClick(addDays(this.props.date, 1))
+    } else if (view === VIEWS.month) {
+      this.setState(currentState => {
+        const interval = this.getInterval(
+          addYears(currentState.interval[0], 1),
+          view
+        )
+
+        return { interval }
+      })
+    } else if (view === VIEWS.year) {
+      this.setState(currentState => {
+        const interval = this.getInterval(
+          addYears(currentState.interval[0], 12),
           view
         )
 
@@ -116,13 +187,10 @@ export default class Toolbar extends Component {
           ))}
           {interval.map(day => (
             <button
-              className={
-                isSameDay(day, date)
-                  ? 'active'
-                  : !isSameMonth(day, date)
-                  ? 'inactive'
-                  : null
-              }
+              className={classNames({
+                active: isSameDay(day, date),
+                inactive: !isSameMonth(day, date)
+              })}
               key={day.toString()}
               onClick={_ => this.handleDateClick(day)}
             >
@@ -133,9 +201,26 @@ export default class Toolbar extends Component {
       ),
       [VIEWS.month]: (
         <div className="grid month-grid">
-          {interval.map(date => (
-            <button key={date} onClick={_ => this.handleMonthClick(date)}>
-              {format(date, 'MMM')}
+          {interval.map(day => (
+            <button
+              key={day}
+              onClick={_ => this.handleMonthClick(day)}
+              className={classNames({ active: isSameMonth(day, date) })}
+            >
+              {format(day, 'MMM')}
+            </button>
+          ))}
+        </div>
+      ),
+      [VIEWS.year]: (
+        <div className="grid month-grid">
+          {interval.map(day => (
+            <button
+              key={day}
+              onClick={_ => this.handleYearClick(day)}
+              className={classNames({ active: isSameYear(day, date) })}
+            >
+              {format(day, 'YYYY')}
             </button>
           ))}
         </div>
@@ -144,12 +229,10 @@ export default class Toolbar extends Component {
 
     return (
       <div className="rbc-calendar-toolbar">
-        <button onClick={this.changeView}>{this.intervalTitle(view)}</button>
-        <button onClick={_ => this.handlePreviousClick()}>Previous</button>
+        <button onClick={this.handlePreviousClick}>Previous</button>
+        <button onClick={this.changeView}>{this.getTitle(view)}</button>
+        <button onClick={this.handleNextClick}>Next</button>
         <button onClick={_ => this.handleDateClick(now)}>Today</button>
-        <button onClick={_ => this.handleDateClick(addDays(date, 1))}>
-          Next
-        </button>
         {views[view]}
       </div>
     )
